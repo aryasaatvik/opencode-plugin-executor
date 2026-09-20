@@ -91,12 +91,12 @@ describe("codeModePath", () => {
   test("agrees with registrationName on the registered Code Mode path", () => {
     const tool = row({
       integration: "stripe_api",
-      connection: "aryalabslive",
+      connection: "example",
       name: "customers.getCustomers",
     })
     const { namespace, leaf } = registrationName(tool)
     // Search results carry `integration.owner.connection.name`, not `tools.*`.
-    expect(codeModePath("stripe_api.org.aryalabslive.customers.getCustomers")).toBe(`${namespace}.${leaf}`)
+    expect(codeModePath("stripe_api.org.example.customers.getCustomers")).toBe(`${namespace}.${leaf}`)
   })
 })
 

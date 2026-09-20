@@ -6,10 +6,10 @@ import { ExecuteResponse, IntegrationSummary, SearchResponse, ToolRow } from "./
 describe("ToolRow", () => {
   test("decodes a full row", () => {
     const row = Schema.decodeUnknownSync(ToolRow)({
-      address: "tools.stripe_api.org.aryalabslive.customers.getCustomers",
+      address: "tools.stripe_api.org.example.customers.getCustomers",
       owner: "org",
       integration: "stripe_api",
-      connection: "aryalabslive",
+      connection: "example",
       name: "customers.getCustomers",
       description: "List customers",
     })
