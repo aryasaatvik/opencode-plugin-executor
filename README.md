@@ -5,9 +5,9 @@ natively inside OpenCode Code Mode. On setup it fetches Executor's tools and int
 integration (`github_api`, `stripe_api`, …), so every Executor tool is callable as `tools.<integration>.<connection>.<tool>`
 directly from Code Mode. Tool input schemas are loaded in the background and the registry reloads once they land.
 
-> **Reference implementation.** This targets the author's Executor fork
-> ([aryasaatvik/executor](https://github.com/aryasaatvik/executor)), not plain upstream Executor, and relies on
-> that fork's HTTP API (`/api/tools`, `/api/integrations`, `/api/tools/schemas`, `/api/semantic-search/search`,
+> **Reference implementation.** Runs against a fork of
+> [Executor](https://github.com/UsefulSoftwareCo/executor) (the author's `aryasaatvik/executor`), not plain upstream, and
+> relies on that fork's HTTP API (`/api/tools`, `/api/integrations`, `/api/tools/schemas`, `/api/semantic-search/search`,
 > `/api/executions`). It is open-sourced for reference, not as a distribution or a supported product. The reference
 > instance is [executor.arya.sh](https://executor.arya.sh).
 
