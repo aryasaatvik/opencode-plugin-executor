@@ -1,12 +1,14 @@
 // Environment, constants, and the typed config service for the Executor plugin.
 //
-// Environment is read through `effect/Config` (never `process.env` directly),
-// and the CF Access secret is read at the `node:fs` boundary (no platform
-// FileSystem adapter is wired here) and held in a `Redacted`. `layer` exposes
-// the resolved config; unreadable config or a missing secret fails with
-// `ExecutorConfigError`.
+// Environment is read through `effect/Config` (never `process.env` directly).
+// The CF Access client id and secret are read at the `node:fs` boundary (no
+// platform FileSystem adapter is wired here) — the client id from
+// `EXECUTOR_CLIENT_ID` or a client-id file, the secret from the secret file —
+// and the secret is held in a `Redacted`. No credential is baked into this
+// package. `layer` exposes the resolved config; unreadable config or a missing
+// credential fails with `ExecutorConfigError`.
 
-import { Config, Context, Effect, Layer, Redacted } from "effect"
+import { Config, Context, Effect, Layer, Option, Redacted } from "effect"
 import { readFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import { join } from "node:path"
@@ -14,7 +16,7 @@ import { join } from "node:path"
 import { ExecutorConfigError } from "./errors.ts"
 
 export const DEFAULT_BASE_URL = "https://executor.arya.sh"
-export const DEFAULT_CLIENT_ID = "60628849563c6a2911dd9d9a81027262.access"
+export const DEFAULT_CLIENT_ID_FILE = join(homedir(), ".config/opencode/secrets/executor-cf-access-client-id")
 export const DEFAULT_SECRET_FILE = join(homedir(), ".config/opencode/secrets/executor-cf-access-client-secret")
 
 /** Rows per `/api/tools/schemas` page. */
@@ -47,7 +49,9 @@ export const parseOptionalPositiveInt = (value: string): number | undefined => {
 /** The environment-facing config, before the secret is read. Exported for tests. */
 export const envConfig = Config.all({
   baseUrl: Config.string("EXECUTOR_BASE_URL").pipe(Config.withDefault(DEFAULT_BASE_URL)),
-  clientId: Config.string("EXECUTOR_CLIENT_ID").pipe(Config.withDefault(DEFAULT_CLIENT_ID)),
+  /** Optional inline client id; when unset, `clientIdFile` is read. */
+  clientId: Config.option(Config.string("EXECUTOR_CLIENT_ID")),
+  clientIdFile: Config.string("EXECUTOR_CLIENT_ID_FILE").pipe(Config.withDefault(DEFAULT_CLIENT_ID_FILE)),
   secretFile: Config.string("EXECUTOR_CLIENT_SECRET_FILE").pipe(Config.withDefault(DEFAULT_SECRET_FILE)),
   include: Config.string("EXECUTOR_INCLUDE").pipe(Config.withDefault(""), Config.map(parseList)),
   limit: Config.string("EXECUTOR_LIMIT").pipe(Config.withDefault(""), Config.map(parseOptionalPositiveInt)),
@@ -72,13 +76,16 @@ export interface Interface {
 
 export class Service extends Context.Service<Service, Interface>()("@opencode-executor/ExecutorConfig") {}
 
-/** Read the CF Access secret, trimming trailing newlines. */
-export const readSecret = (path: string): Effect.Effect<string, ExecutorConfigError> =>
+/** Read a trimmed credential file at the node:fs boundary. */
+const readTrimmedFile = (path: string, label: string): Effect.Effect<string, ExecutorConfigError> =>
   Effect.tryPromise({
     try: () => readFile(path, "utf8"),
     catch: (error) =>
-      new ExecutorConfigError({ message: `could not read Executor secret at ${path}: ${String(error)}` }),
+      new ExecutorConfigError({ message: `could not read Executor ${label} at ${path}: ${String(error)}` }),
   }).pipe(Effect.map((value) => value.trim()))
+
+/** Read the CF Access secret, trimming trailing newlines. */
+export const readSecret = (path: string): Effect.Effect<string, ExecutorConfigError> => readTrimmedFile(path, "secret")
 
 export const layer: Layer.Layer<Service, ExecutorConfigError> = Layer.effect(
   Service,
@@ -87,10 +94,11 @@ export const layer: Layer.Layer<Service, ExecutorConfigError> = Layer.effect(
     const env = yield* envConfig.pipe(
       Effect.mapError((error) => new ExecutorConfigError({ message: error.message })),
     )
+    const clientId = Option.getOrUndefined(env.clientId) ?? (yield* readTrimmedFile(env.clientIdFile, "client id"))
     const secret = yield* readSecret(env.secretFile)
     return Service.of({
       baseUrl: env.baseUrl.replace(/\/+$/, ""),
-      clientId: env.clientId,
+      clientId,
       secret: Redacted.make(secret),
       include: env.include,
       limit: env.limit,

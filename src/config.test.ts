@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { ConfigProvider, Effect } from "effect"
+import { ConfigProvider, Effect, Option } from "effect"
 
 import { envConfig, parseList, parseOptionalPositiveInt } from "./config.ts"
 
@@ -27,7 +27,8 @@ describe("envConfig", () => {
   test("applies defaults when nothing is set", () => {
     const parsed = parseEnv({})
     expect(parsed.baseUrl).toBe("https://executor.arya.sh")
-    expect(parsed.clientId.length).toBeGreaterThan(0)
+    expect(Option.isNone(parsed.clientId)).toBe(true)
+    expect(parsed.clientIdFile.endsWith("executor-cf-access-client-id")).toBe(true)
     expect(parsed.secretFile.endsWith("executor-cf-access-client-secret")).toBe(true)
     expect(parsed.include.size).toBe(0)
     expect(parsed.limit).toBeUndefined()
@@ -47,7 +48,7 @@ describe("envConfig", () => {
       EXECUTOR_SEARCH_LIMIT: "5",
     })
     expect(parsed.baseUrl).toBe("https://example.test/")
-    expect(parsed.clientId).toBe("id.access")
+    expect(Option.getOrUndefined(parsed.clientId)).toBe("id.access")
     expect([...parsed.include]).toEqual(["stripe_api", "github_api"])
     expect(parsed.limit).toBe(25)
     expect(parsed.schemas).toBe("off")
