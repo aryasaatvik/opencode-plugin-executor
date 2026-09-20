@@ -6,7 +6,7 @@ integration (`github_api`, `stripe_api`, …), so every Executor tool is callabl
 directly from Code Mode. Tool input schemas are loaded in the background and the registry reloads once they land.
 
 > **Reference implementation.** This targets the author's Executor fork
-> ([UsefulSoftwareCo/executor](https://github.com/UsefulSoftwareCo/executor)), not plain upstream Executor, and relies on
+> ([aryasaatvik/executor](https://github.com/aryasaatvik/executor)), not plain upstream Executor, and relies on
 > that fork's HTTP API (`/api/tools`, `/api/integrations`, `/api/tools/schemas`, `/api/semantic-search/search`,
 > `/api/executions`). It is open-sourced for reference, not as a distribution or a supported product. The reference
 > instance is [executor.arya.sh](https://executor.arya.sh).
