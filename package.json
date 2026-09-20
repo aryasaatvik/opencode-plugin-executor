@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "opencode-plugin-executor",
+  "version": "0.1.0",
+  "description": "OpenCode plugin that exposes the Executor tool catalog natively in Code Mode",
+  "type": "module",
+  "license": "MIT",
+  "author": "Saatvik Arya",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "effect": "4.0.0-rc.112"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.8.2"
+  }
+}
