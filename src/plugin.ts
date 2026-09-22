@@ -254,7 +254,7 @@ const plugin = {
         const pending = (selected ?? connectionsOf(current.rows)).filter(
           (scope) => !current.loaded.has(scopeKey(scope)) || missing.has(scopeKey(scope)),
         )
-        if (pending.length === 0) return
+        if (pending.length === 0) return false
 
         const perConnection = yield* Effect.forEach(pending, fetchConnectionSchemas, {
           concurrency: config.concurrency,
@@ -278,9 +278,10 @@ const plugin = {
         })
 
         yield* context.tool.reload()
+        return true
       }).pipe(
         Effect.catchCause((cause) =>
-          Effect.logError(`[executor] schema load failed: ${cause}`).pipe(Effect.asVoid),
+          Effect.logError(`[executor] schema load failed: ${cause}`).pipe(Effect.as(false)),
         ),
       )
 
@@ -345,8 +346,8 @@ const plugin = {
                 .filter((tool) => matched.has(`${tool.namespace}.${tool.name}`))
                 .map((tool) => tool.row),
             )
-            yield* loadSchemas(scopes)
-            yield* context.tool.reload()
+            const reloaded = yield* loadSchemas(scopes)
+            if (!reloaded) yield* context.tool.reload()
             // `reload` replays the transform synchronously. Only return paths whose
             // exact schema is now present in the registry the next model step sees.
             const ready = yield* Ref.get(state)

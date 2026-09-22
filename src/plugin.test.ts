@@ -164,7 +164,12 @@ describe("executor.search schema readiness", () => {
         ],
       })
       expect(tools.get("google_search_console.primary.searchAnalytics.query")?.input).toEqual(inputSchema)
-      expect(reloads).toBeGreaterThan(0)
+      expect(reloads).toBe(1)
+      expect(schemaRequests).toBe(2)
+
+      const warmResult = await Effect.runPromise(search!.execute({ query: "search performance" }, {}))
+      expect(warmResult.output).toEqual(result.output)
+      expect(reloads).toBe(2)
       expect(schemaRequests).toBe(2)
 
       includeAddedTool = true
