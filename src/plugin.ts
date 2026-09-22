@@ -210,6 +210,7 @@ const plugin = {
       const fetchConnectionSchemas = (scope: ConnectionScope) =>
         Effect.gen(function* () {
           const collected = new Map<string, Record<string, unknown>>()
+          let complete = true
           let after: string | undefined
           while (true) {
             const maybeEntries = yield* client.connectionSchemas(scope, { after, page: SCHEMA_PAGE }).pipe(
@@ -227,7 +228,10 @@ const plugin = {
                 ),
               ),
             )
-            if (Option.isNone(maybeEntries)) break
+            if (Option.isNone(maybeEntries)) {
+              complete = false
+              break
+            }
             const entries = maybeEntries.value
             for (const entry of entries) {
               const input = selfContained(entry)
@@ -238,31 +242,42 @@ const plugin = {
             if (last === undefined) break
             after = last.address
           }
-          return collected
+          return { complete, schemas: collected }
         })
 
-      /** Load schemas for connections not yet fetched, then reload if still current. */
-      const loadSchemas = Effect.gen(function* () {
+      /** Load selected schemas not yet fetched, merge them into the latest catalog, then reload. */
+      const loadSchemas = (selected?: ReadonlyArray<ConnectionScope>) => Effect.gen(function* () {
         const current = yield* Ref.get(state)
-        const pending = connectionsOf(current.rows).filter((scope) => !current.loaded.has(scopeKey(scope)))
+        const missing = new Set(
+          current.rows.filter((row) => !current.schemas.has(row.address)).map(scopeKey),
+        )
+        const pending = (selected ?? connectionsOf(current.rows)).filter(
+          (scope) => !current.loaded.has(scopeKey(scope)) || missing.has(scopeKey(scope)),
+        )
         if (pending.length === 0) return
 
         const perConnection = yield* Effect.forEach(pending, fetchConnectionSchemas, {
           concurrency: config.concurrency,
         })
-        const schemas = new Map(current.schemas)
-        for (const collected of perConnection) for (const [address, schema] of collected) schemas.set(address, schema)
-        const loaded = new Set(current.loaded)
-        for (const scope of pending) loaded.add(scopeKey(scope))
-        yield* Ref.set(state, {
-          ...current,
-          schemas,
-          loaded,
-          plan: buildPlan(current.rows, current.integrations, schemas),
+        yield* Ref.update(state, (latest) => {
+          const addresses = new Set(latest.rows.map((row) => row.address))
+          const schemas = new Map(latest.schemas)
+          for (const result of perConnection) {
+            for (const [address, schema] of result.schemas) if (addresses.has(address)) schemas.set(address, schema)
+          }
+          const loaded = new Set(latest.loaded)
+          for (const [index, scope] of pending.entries()) {
+            if (perConnection[index]?.complete) loaded.add(scopeKey(scope))
+          }
+          return {
+            ...latest,
+            schemas,
+            loaded,
+            plan: buildPlan(latest.rows, latest.integrations, schemas),
+          }
         })
 
-        const latest = yield* Ref.get(state)
-        if (latest.generation === current.generation) yield* context.tool.reload()
+        yield* context.tool.reload()
       }).pipe(
         Effect.catchCause((cause) =>
           Effect.logError(`[executor] schema load failed: ${cause}`).pipe(Effect.asVoid),
@@ -321,8 +336,28 @@ const plugin = {
               output: { items: [] },
             }
           }
-          const registered = (yield* Ref.get(state)).plan.registered
-          const items = filterSearchResults(maybeItems.value, registered)
+          const before = yield* Ref.get(state)
+          let items = filterSearchResults(maybeItems.value, before.plan.registered)
+          if (config.loadSchemas && items.length > 0) {
+            const matched = new Set(items.map((item) => item.path))
+            const scopes = connectionsOf(
+              before.plan.tools
+                .filter((tool) => matched.has(`${tool.namespace}.${tool.name}`))
+                .map((tool) => tool.row),
+            )
+            yield* loadSchemas(scopes)
+            yield* context.tool.reload()
+            // `reload` replays the transform synchronously. Only return paths whose
+            // exact schema is now present in the registry the next model step sees.
+            const ready = yield* Ref.get(state)
+            const addresses = new Map(
+              ready.plan.tools.map((tool) => [`${tool.namespace}.${tool.name}`, tool.row.address]),
+            )
+            items = items.filter((item) => {
+              const address = addresses.get(item.path)
+              return address !== undefined && ready.schemas.has(address)
+            })
+          }
           const content =
             items.length > 0
               ? items.map((item) => `tools.${item.path}`).join("\n")
@@ -335,7 +370,7 @@ const plugin = {
           yield* loadCatalog
           yield* context.tool.reload()
           if (config.loadSchemas) {
-            yield* Effect.forkDetach(loadSchemas)
+            yield* Effect.forkDetach(loadSchemas())
           }
           const current = yield* Ref.get(state)
           const count = integrationCount(current.rows)
@@ -383,7 +418,7 @@ const plugin = {
       yield* context.tool.transform(register)
 
       if (config.loadSchemas) {
-        yield* Effect.forkScoped(loadSchemas)
+        yield* Effect.forkScoped(loadSchemas())
       }
     }).pipe(
       Effect.provide(ExecutorClient.layer),
