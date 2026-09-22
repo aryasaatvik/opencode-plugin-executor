@@ -16,7 +16,9 @@ It also registers two control tools in the `executor` namespace:
 - **`executor.search`** — searches Executor's semantic tool index by natural-language query
   (`{ query: string, limit?: number }`) and returns matching Code Mode paths, e.g.
   `tools["executor.search"]({ query: "list stripe customers" })` surfaces `stripe_api…customers.getCustomers`. It is
-  pinned, so it stays visible under the default catalog budget.
+  pinned, so it stays visible under the default catalog budget. With schema loading enabled, search
+  loads schemas for matched connections and reloads Code Mode before returning their paths. Matches
+  whose schemas remain unavailable are withheld; failed schema fetches can retry on later searches.
 - **`executor.refresh`** — re-fetches the tool catalog and integration metadata, reloads the Code Mode registry, and
   kicks off schema loading for any new connections.
 
