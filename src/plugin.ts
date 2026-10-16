@@ -117,7 +117,10 @@ const buildPlan = (
   const namespaces: { name: string; description: string }[] = []
 
   for (const [group, groupRows] of groups) {
-    namespaces.push({ name: group, description: integrationLine(integrations.get(group), groupRows.length) })
+    namespaces.push({
+      name: group,
+      description: integrationLine(integrations.get(group), groupRows.length),
+    })
     for (const row of groupRows) {
       const { namespace, leaf } = registrationName(row)
       let name = leaf
@@ -160,7 +163,8 @@ const plugin = {
       })
 
       const applyFilters = (rows: ReadonlyArray<ToolRow>): ReadonlyArray<ToolRow> => {
-        const included = config.include.size > 0 ? rows.filter((row) => config.include.has(row.integration)) : rows
+        const included =
+          config.include.size > 0 ? rows.filter((row) => config.include.has(row.integration)) : rows
         return config.limit === undefined ? included : included.slice(0, config.limit)
       }
 
@@ -170,7 +174,8 @@ const plugin = {
       ): Map<string, Record<string, unknown>> => {
         const addresses = new Set(rows.map((row) => row.address))
         const next = new Map<string, Record<string, unknown>>()
-        for (const [address, schema] of schemas) if (addresses.has(address)) next.set(address, schema)
+        for (const [address, schema] of schemas)
+          if (addresses.has(address)) next.set(address, schema)
         return next
       }
 
@@ -179,7 +184,9 @@ const plugin = {
         const [rows, integrationList] = yield* Effect.all([client.tools(), client.integrations()], {
           concurrency: 2,
         })
-        const integrations = new Map(integrationList.map((integration) => [normalize(integration.slug), integration]))
+        const integrations = new Map(
+          integrationList.map((integration) => [normalize(integration.slug), integration]),
+        )
         const filtered = applyFilters(rows)
         const current = yield* Ref.get(state)
         const schemas = pruneSchemas(current.schemas, filtered)
@@ -213,21 +220,23 @@ const plugin = {
           let complete = true
           let after: string | undefined
           while (true) {
-            const maybeEntries = yield* client.connectionSchemas(scope, { after, page: SCHEMA_PAGE }).pipe(
-              Effect.map((entries) => Option.some(entries)),
-              Effect.catchTag("Executor.HttpError", (error) =>
-                Effect.logError(`[executor] schema fetch failed: ${error.message}`).pipe(
-                  Effect.annotateLogs(annotateScope(scope)),
-                  Effect.as(Option.none<ReadonlyArray<SchemaEntry>>()),
+            const maybeEntries = yield* client
+              .connectionSchemas(scope, { after, page: SCHEMA_PAGE })
+              .pipe(
+                Effect.map((entries) => Option.some(entries)),
+                Effect.catchTag("Executor.HttpError", (error) =>
+                  Effect.logError(`[executor] schema fetch failed: ${error.message}`).pipe(
+                    Effect.annotateLogs(annotateScope(scope)),
+                    Effect.as(Option.none<ReadonlyArray<SchemaEntry>>()),
+                  ),
                 ),
-              ),
-              Effect.catchTag("Executor.DecodeError", (error) =>
-                Effect.logError(`[executor] schema decode failed: ${error.message}`).pipe(
-                  Effect.annotateLogs(annotateScope(scope)),
-                  Effect.as(Option.none<ReadonlyArray<SchemaEntry>>()),
+                Effect.catchTag("Executor.DecodeError", (error) =>
+                  Effect.logError(`[executor] schema decode failed: ${error.message}`).pipe(
+                    Effect.annotateLogs(annotateScope(scope)),
+                    Effect.as(Option.none<ReadonlyArray<SchemaEntry>>()),
+                  ),
                 ),
-              ),
-            )
+              )
             if (Option.isNone(maybeEntries)) {
               complete = false
               break
@@ -246,44 +255,46 @@ const plugin = {
         })
 
       /** Load selected schemas not yet fetched, merge them into the latest catalog, then reload. */
-      const loadSchemas = (selected?: ReadonlyArray<ConnectionScope>) => Effect.gen(function* () {
-        const current = yield* Ref.get(state)
-        const missing = new Set(
-          current.rows.filter((row) => !current.schemas.has(row.address)).map(scopeKey),
-        )
-        const pending = (selected ?? connectionsOf(current.rows)).filter(
-          (scope) => !current.loaded.has(scopeKey(scope)) || missing.has(scopeKey(scope)),
-        )
-        if (pending.length === 0) return false
+      const loadSchemas = (selected?: ReadonlyArray<ConnectionScope>) =>
+        Effect.gen(function* () {
+          const current = yield* Ref.get(state)
+          const missing = new Set(
+            current.rows.filter((row) => !current.schemas.has(row.address)).map(scopeKey),
+          )
+          const pending = (selected ?? connectionsOf(current.rows)).filter(
+            (scope) => !current.loaded.has(scopeKey(scope)) || missing.has(scopeKey(scope)),
+          )
+          if (pending.length === 0) return false
 
-        const perConnection = yield* Effect.forEach(pending, fetchConnectionSchemas, {
-          concurrency: config.concurrency,
-        })
-        yield* Ref.update(state, (latest) => {
-          const addresses = new Set(latest.rows.map((row) => row.address))
-          const schemas = new Map(latest.schemas)
-          for (const result of perConnection) {
-            for (const [address, schema] of result.schemas) if (addresses.has(address)) schemas.set(address, schema)
-          }
-          const loaded = new Set(latest.loaded)
-          for (const [index, scope] of pending.entries()) {
-            if (perConnection[index]?.complete) loaded.add(scopeKey(scope))
-          }
-          return {
-            ...latest,
-            schemas,
-            loaded,
-            plan: buildPlan(latest.rows, latest.integrations, schemas),
-          }
-        })
+          const perConnection = yield* Effect.forEach(pending, fetchConnectionSchemas, {
+            concurrency: config.concurrency,
+          })
+          yield* Ref.update(state, (latest) => {
+            const addresses = new Set(latest.rows.map((row) => row.address))
+            const schemas = new Map(latest.schemas)
+            for (const result of perConnection) {
+              for (const [address, schema] of result.schemas)
+                if (addresses.has(address)) schemas.set(address, schema)
+            }
+            const loaded = new Set(latest.loaded)
+            for (const [index, scope] of pending.entries()) {
+              if (perConnection[index]?.complete) loaded.add(scopeKey(scope))
+            }
+            return {
+              ...latest,
+              schemas,
+              loaded,
+              plan: buildPlan(latest.rows, latest.integrations, schemas),
+            }
+          })
 
-        yield* context.tool.reload()
-        return true
-      }).pipe(
-        Effect.catchCause((cause) =>
-          Effect.logError(`[executor] schema load failed: ${cause}`).pipe(Effect.as(false)),
-        ),
-      )
+          yield* context.tool.reload()
+          return true
+        }).pipe(
+          Effect.catchCause((cause) =>
+            Effect.logError(`[executor] schema load failed: ${cause}`).pipe(Effect.as(false)),
+          ),
+        )
 
       const makeExecute =
         (row: ToolRow) =>
@@ -292,17 +303,28 @@ const plugin = {
             const code = `return await tools.${addressPath(row)}(${JSON.stringify(input ?? {})})`
             const body = yield* client.execute(code).pipe(
               Effect.catchTag("Executor.HttpError", (error) =>
-                Effect.fail(new ToolError({ message: `Executor request failed: ${error.message}` })),
+                Effect.fail(
+                  new ToolError({ message: `Executor request failed: ${error.message}` }),
+                ),
               ),
               Effect.catchTag("Executor.DecodeError", (error) =>
-                Effect.fail(new ToolError({ message: `Executor returned invalid JSON: ${error.message}` })),
+                Effect.fail(
+                  new ToolError({ message: `Executor returned invalid JSON: ${error.message}` }),
+                ),
               ),
             )
             if (body.status === "paused") {
-              return { content: body.text ?? "Execution paused for approval.", output: body.structured ?? null }
+              return {
+                content: body.text ?? "Execution paused for approval.",
+                output: body.structured ?? null,
+              }
             }
             if (body.isError) {
-              yield* Effect.fail(new ToolError({ message: body.text || render(body.structured) || "Executor call failed." }))
+              yield* Effect.fail(
+                new ToolError({
+                  message: body.text || render(body.structured) || "Executor call failed.",
+                }),
+              )
             }
             const value = unwrapExecution(body)
             const union = isRecord(value) ? value : undefined
@@ -313,7 +335,9 @@ const plugin = {
             return { content: render(data), output: data ?? null }
           })
 
-      const searchExecute = (input: unknown): Effect.Effect<{ content: string; output: unknown }, never> =>
+      const searchExecute = (
+        input: unknown,
+      ): Effect.Effect<{ content: string; output: unknown }, never> =>
         Effect.gen(function* () {
           const record = isRecord(input) ? input : {}
           const query = typeof record.query === "string" ? record.query : ""
@@ -421,10 +445,7 @@ const plugin = {
       if (config.loadSchemas) {
         yield* Effect.forkScoped(loadSchemas())
       }
-    }).pipe(
-      Effect.provide(ExecutorClient.layer),
-      Effect.provide(ExecutorConfig.layer),
-    ),
+    }).pipe(Effect.provide(ExecutorClient.layer), Effect.provide(ExecutorConfig.layer)),
 }
 
 export default plugin

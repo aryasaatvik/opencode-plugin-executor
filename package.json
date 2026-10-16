@@ -3,13 +3,17 @@
   "name": "opencode-plugin-executor",
   "version": "0.1.0",
   "description": "OpenCode plugin that exposes the Executor tool catalog natively in Code Mode",
-  "type": "module",
   "license": "MIT",
   "author": "Saatvik Arya",
+  "type": "module",
   "exports": {
     ".": "./index.ts"
   },
   "scripts": {
+    "check": "bun run format:check && bun run lint && bun run typecheck && bun run test",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "lint": "oxlint --deny-warnings .",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },
@@ -18,6 +22,12 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "oxfmt": "0.43.0",
+    "oxlint": "1.57.0",
     "typescript": "^5.8.2"
-  }
+  },
+  "overrides": {
+    "tinypool": "2.1.2"
+  },
+  "packageManager": "bun@1.4.3"
 }

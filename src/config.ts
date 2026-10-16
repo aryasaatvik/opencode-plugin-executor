@@ -16,8 +16,14 @@ import { join } from "node:path"
 import { ExecutorConfigError } from "./errors.ts"
 
 export const DEFAULT_BASE_URL = "https://executor.arya.sh"
-export const DEFAULT_CLIENT_ID_FILE = join(homedir(), ".config/opencode/secrets/executor-cf-access-client-id")
-export const DEFAULT_SECRET_FILE = join(homedir(), ".config/opencode/secrets/executor-cf-access-client-secret")
+export const DEFAULT_CLIENT_ID_FILE = join(
+  homedir(),
+  ".config/opencode/secrets/executor-cf-access-client-id",
+)
+export const DEFAULT_SECRET_FILE = join(
+  homedir(),
+  ".config/opencode/secrets/executor-cf-access-client-secret",
+)
 
 /** Rows per `/api/tools/schemas` page. */
 export const SCHEMA_PAGE = 500
@@ -51,12 +57,22 @@ export const envConfig = Config.all({
   baseUrl: Config.string("EXECUTOR_BASE_URL").pipe(Config.withDefault(DEFAULT_BASE_URL)),
   /** Optional inline client id; when unset, `clientIdFile` is read. */
   clientId: Config.option(Config.string("EXECUTOR_CLIENT_ID")),
-  clientIdFile: Config.string("EXECUTOR_CLIENT_ID_FILE").pipe(Config.withDefault(DEFAULT_CLIENT_ID_FILE)),
-  secretFile: Config.string("EXECUTOR_CLIENT_SECRET_FILE").pipe(Config.withDefault(DEFAULT_SECRET_FILE)),
+  clientIdFile: Config.string("EXECUTOR_CLIENT_ID_FILE").pipe(
+    Config.withDefault(DEFAULT_CLIENT_ID_FILE),
+  ),
+  secretFile: Config.string("EXECUTOR_CLIENT_SECRET_FILE").pipe(
+    Config.withDefault(DEFAULT_SECRET_FILE),
+  ),
   include: Config.string("EXECUTOR_INCLUDE").pipe(Config.withDefault(""), Config.map(parseList)),
-  limit: Config.string("EXECUTOR_LIMIT").pipe(Config.withDefault(""), Config.map(parseOptionalPositiveInt)),
+  limit: Config.string("EXECUTOR_LIMIT").pipe(
+    Config.withDefault(""),
+    Config.map(parseOptionalPositiveInt),
+  ),
   schemas: Config.string("EXECUTOR_SCHEMAS").pipe(Config.withDefault("on")),
-  concurrency: Config.string("EXECUTOR_CONCURRENCY").pipe(Config.withDefault(""), Config.map(parseOptionalPositiveInt)),
+  concurrency: Config.string("EXECUTOR_CONCURRENCY").pipe(
+    Config.withDefault(""),
+    Config.map(parseOptionalPositiveInt),
+  ),
   searchLimit: Config.string("EXECUTOR_SEARCH_LIMIT").pipe(
     Config.withDefault(""),
     Config.map(parseOptionalPositiveInt),
@@ -74,27 +90,31 @@ export interface Interface {
   readonly searchLimit: number
 }
 
-export class Service extends Context.Service<Service, Interface>()("@opencode-executor/ExecutorConfig") {}
+export class Service extends Context.Service<Service, Interface>()(
+  "@opencode-executor/ExecutorConfig",
+) {}
 
 /** Read a trimmed credential file at the node:fs boundary. */
 const readTrimmedFile = (path: string, label: string): Effect.Effect<string, ExecutorConfigError> =>
   Effect.tryPromise({
     try: () => readFile(path, "utf8"),
     catch: (error) =>
-      new ExecutorConfigError({ message: `could not read Executor ${label} at ${path}: ${String(error)}` }),
+      new ExecutorConfigError({
+        message: `could not read Executor ${label} at ${path}: ${String(error)}`,
+      }),
   }).pipe(Effect.map((value) => value.trim()))
 
 /** Read the CF Access secret, trimming trailing newlines. */
-export const readSecret = (path: string): Effect.Effect<string, ExecutorConfigError> => readTrimmedFile(path, "secret")
+export const readSecret = (path: string): Effect.Effect<string, ExecutorConfigError> =>
+  readTrimmedFile(path, "secret")
 
-export const layer: Layer.Layer<Service, ExecutorConfigError> = Layer.effect(
-  Service,
-)(
+export const layer: Layer.Layer<Service, ExecutorConfigError> = Layer.effect(Service)(
   Effect.gen(function* () {
     const env = yield* envConfig.pipe(
       Effect.mapError((error) => new ExecutorConfigError({ message: error.message })),
     )
-    const clientId = Option.getOrUndefined(env.clientId) ?? (yield* readTrimmedFile(env.clientIdFile, "client id"))
+    const clientId =
+      Option.getOrUndefined(env.clientId) ?? (yield* readTrimmedFile(env.clientIdFile, "client id"))
     const secret = yield* readSecret(env.secretFile)
     return Service.of({
       baseUrl: env.baseUrl.replace(/\/+$/, ""),

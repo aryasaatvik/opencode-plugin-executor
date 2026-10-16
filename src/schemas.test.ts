@@ -24,9 +24,20 @@ describe("ToolRow", () => {
 
 describe("IntegrationSummary", () => {
   test("decodes with and without the optional kind", () => {
-    expect(Schema.decodeUnknownSync(IntegrationSummary)({ slug: "stripe_api", name: "Stripe", description: "" }).kind).toBeUndefined()
     expect(
-      Schema.decodeUnknownSync(IntegrationSummary)({ slug: "x", name: "X", description: "", kind: "openapi" }).kind,
+      Schema.decodeUnknownSync(IntegrationSummary)({
+        slug: "stripe_api",
+        name: "Stripe",
+        description: "",
+      }).kind,
+    ).toBeUndefined()
+    expect(
+      Schema.decodeUnknownSync(IntegrationSummary)({
+        slug: "x",
+        name: "X",
+        description: "",
+        kind: "openapi",
+      }).kind,
     ).toBe("openapi")
   })
 })
@@ -57,7 +68,14 @@ describe("ExecuteResponse", () => {
 describe("SearchResponse", () => {
   test("decodes items and a missing items field", () => {
     const withItems = Schema.decodeUnknownSync(SearchResponse)({
-      items: [{ path: "stripe.org.main.customers.getCustomers", name: "getCustomers", integration: "stripe_api", score: 0.9 }],
+      items: [
+        {
+          path: "stripe.org.main.customers.getCustomers",
+          name: "getCustomers",
+          integration: "stripe_api",
+          score: 0.9,
+        },
+      ],
     })
     expect(withItems.items?.length).toBe(1)
     expect(Schema.decodeUnknownSync(SearchResponse)({}).items).toBeUndefined()

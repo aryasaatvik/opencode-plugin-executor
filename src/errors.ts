@@ -8,18 +8,27 @@
 
 import { Schema } from "effect"
 
-export class ExecutorHttpError extends Schema.TaggedError<ExecutorHttpError>()("Executor.HttpError", {
-  message: Schema.String,
-  status: Schema.optional(Schema.Number),
-}) {}
+export class ExecutorHttpError extends Schema.TaggedError<ExecutorHttpError>()(
+  "Executor.HttpError",
+  {
+    message: Schema.String,
+    status: Schema.optional(Schema.Number),
+  },
+) {}
 
-export class ExecutorDecodeError extends Schema.TaggedError<ExecutorDecodeError>()("Executor.DecodeError", {
-  message: Schema.String,
-}) {}
+export class ExecutorDecodeError extends Schema.TaggedError<ExecutorDecodeError>()(
+  "Executor.DecodeError",
+  {
+    message: Schema.String,
+  },
+) {}
 
-export class ExecutorConfigError extends Schema.TaggedError<ExecutorConfigError>()("Executor.ConfigError", {
-  message: Schema.String,
-}) {}
+export class ExecutorConfigError extends Schema.TaggedError<ExecutorConfigError>()(
+  "Executor.ConfigError",
+  {
+    message: Schema.String,
+  },
+) {}
 
 export class ToolError extends Schema.TaggedError<ToolError>()("Tool.Error", {
   message: Schema.String,

@@ -31,8 +31,15 @@ export interface OpenCodeTool {
   readonly description: string
   readonly input: unknown
   readonly output?: unknown
-  readonly options?: { readonly namespace?: string; readonly codemode?: boolean; readonly pinned?: boolean }
-  readonly execute: (input: unknown, context: unknown) => Effect.Effect<{ output?: unknown; content?: string }, unknown>
+  readonly options?: {
+    readonly namespace?: string
+    readonly codemode?: boolean
+    readonly pinned?: boolean
+  }
+  readonly execute: (
+    input: unknown,
+    context: unknown,
+  ) => Effect.Effect<{ output?: unknown; content?: string }, unknown>
 }
 
 export interface ToolEditor {
