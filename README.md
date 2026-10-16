@@ -30,10 +30,11 @@ Work in progress: the plugin currently covers catalog registration, search, refr
 
 ## Development
 
+Use Bun 1.4.3, pinned in `package.json` (see [CONTRIBUTING.md](./CONTRIBUTING.md)).
+
 ```sh
-bun install
-bun run typecheck
-bun test
+bun install --frozen-lockfile
+bun run check
 ```
 
 Register the repository path in the `plugins` array of `~/.config/opencode/opencode.jsonc` to load it.
