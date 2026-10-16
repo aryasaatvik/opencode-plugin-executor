@@ -1,9 +1,6 @@
 # Contributing
 
-Use Bun 1.4.3, pinned in `package.json` under `packageManager`. The repository
-previously declared no runtime pin; this records the installed development runtime
-without upgrading it. The locked Bun types remain 1.4.2. TypeScript stays at the
-existing `^5.8.2` declaration, locked to 5.9.3.
+Use Bun 1.4.3, pinned in `package.json` under `packageManager`.
 
 ```sh
 bun install --frozen-lockfile
