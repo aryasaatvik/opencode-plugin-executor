@@ -33,7 +33,8 @@ export const titleCase = (value: string) =>
 /** `tools.<integration>.<owner>.<connection>.<tool>` -> the sandbox path. */
 export const addressPath = (tool: ToolRow) => tool.address.replace(/^tools\./, "")
 
-export const scopeKey = (scope: ConnectionScope) => `${scope.integration}\u0000${scope.owner}\u0000${scope.connection}`
+export const scopeKey = (scope: ConnectionScope) =>
+  `${scope.integration}\u0000${scope.owner}\u0000${scope.connection}`
 
 export const connectionsOf = (rows: readonly ToolRow[]): ConnectionScope[] => [
   ...new Map(
@@ -61,7 +62,8 @@ export function registrationName(tool: ToolRow): RegistrationName {
     .map((part) => normalize(part))
     .filter((part) => part.length > 0)
   const first = parts[0]
-  if (parts.length > 1 && first !== undefined && first.toLowerCase() === connection.toLowerCase()) parts = parts.slice(1)
+  if (parts.length > 1 && first !== undefined && first.toLowerCase() === connection.toLowerCase())
+    parts = parts.slice(1)
   if (parts.length === 0) parts = [normalize(tool.name)]
 
   const segments = [integration, connection, ...parts.slice(0, -1)]
@@ -100,12 +102,17 @@ export function registrationName(tool: ToolRow): RegistrationName {
  * carries full OpenAPI `info.description` blobs and MCP operational notes that
  * would otherwise wreck the catalog line.
  */
-export function integrationLine(integration: IntegrationSummary | undefined, count: number): string {
+export function integrationLine(
+  integration: IntegrationSummary | undefined,
+  count: number,
+): string {
   if (!integration) return `${count} Executor tools`
   const name = integration.name || integration.slug
   const description = (integration.description ?? "").replace(/\s+/g, " ").trim()
   const usable =
-    description.length > 0 && description.length <= DESCRIPTION_MAX && description.toLowerCase() !== name.toLowerCase()
+    description.length > 0 &&
+    description.length <= DESCRIPTION_MAX &&
+    description.toLowerCase() !== name.toLowerCase()
   const line = usable ? `${name} — ${description}` : name
   return line.length > DESCRIPTION_LIMIT ? `${line.slice(0, DESCRIPTION_LIMIT - 3)}...` : line
 }

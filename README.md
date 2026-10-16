@@ -44,14 +44,14 @@ Register the repository path in the `plugins` array of `~/.config/opencode/openc
 No credential is baked into the package. The CF Access service-token client id and secret are read at runtime: the
 client id from `EXECUTOR_CLIENT_ID` or a file, the secret from a file.
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `EXECUTOR_BASE_URL` | `https://executor.arya.sh` | Executor instance base URL |
-| `EXECUTOR_CLIENT_ID` | — | Inline CF Access client id (overrides the file) |
-| `EXECUTOR_CLIENT_ID_FILE` | `~/.config/opencode/secrets/executor-cf-access-client-id` | File holding the client id |
-| `EXECUTOR_CLIENT_SECRET_FILE` | `~/.config/opencode/secrets/executor-cf-access-client-secret` | File holding the client secret |
-| `EXECUTOR_INCLUDE` | all | Comma-separated integration slugs to limit registration |
-| `EXECUTOR_LIMIT` | all | Cap on registered tools |
-| `EXECUTOR_SCHEMAS` | `on` | `off` skips schema loading |
-| `EXECUTOR_CONCURRENCY` | `16` | Concurrent per-connection schema fetches |
-| `EXECUTOR_SEARCH_LIMIT` | `10` | Default `executor.search` result count |
+| Variable                      | Default                                                       | Purpose                                                 |
+| ----------------------------- | ------------------------------------------------------------- | ------------------------------------------------------- |
+| `EXECUTOR_BASE_URL`           | `https://executor.arya.sh`                                    | Executor instance base URL                              |
+| `EXECUTOR_CLIENT_ID`          | —                                                             | Inline CF Access client id (overrides the file)         |
+| `EXECUTOR_CLIENT_ID_FILE`     | `~/.config/opencode/secrets/executor-cf-access-client-id`     | File holding the client id                              |
+| `EXECUTOR_CLIENT_SECRET_FILE` | `~/.config/opencode/secrets/executor-cf-access-client-secret` | File holding the client secret                          |
+| `EXECUTOR_INCLUDE`            | all                                                           | Comma-separated integration slugs to limit registration |
+| `EXECUTOR_LIMIT`              | all                                                           | Cap on registered tools                                 |
+| `EXECUTOR_SCHEMAS`            | `on`                                                          | `off` skips schema loading                              |
+| `EXECUTOR_CONCURRENCY`        | `16`                                                          | Concurrent per-connection schema fetches                |
+| `EXECUTOR_SEARCH_LIMIT`       | `10`                                                          | Default `executor.search` result count                  |

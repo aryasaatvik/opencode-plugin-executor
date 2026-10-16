@@ -3,9 +3,9 @@
   "name": "opencode-plugin-executor",
   "version": "0.1.0",
   "description": "OpenCode plugin that exposes the Executor tool catalog natively in Code Mode",
-  "type": "module",
   "license": "MIT",
   "author": "Saatvik Arya",
+  "type": "module",
   "exports": {
     ".": "./index.ts"
   },
